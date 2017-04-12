@@ -9,7 +9,11 @@
 
 #import <UIKit/UIKit.h>
 
+@protocol NMRangeSliderDelegate;
+
 @interface NMRangeSlider : UIControl
+
+@property (weak, nonatomic) id <NMRangeSliderDelegate> delegate;
 
 // default 0.0
 @property(assign, nonatomic) float minimumValue;
@@ -19,6 +23,9 @@
 
 // default 0.0. This is the minimum distance between between the upper and lower values
 @property(assign, nonatomic) float minimumRange;
+
+// default 0.0. (disabled) This is the minimum threshold distance between the upper and lower values. By moving the trackers closer then specified delegate will notify 
+@property(assign, nonatomic) float minimumThresholdRange;
 
 // default 0.0 (disabled)
 @property(assign, nonatomic) float stepValue;
@@ -78,11 +85,8 @@
 
 @property(retain, nonatomic) UIImage* trackBackgroundImage;
 
-@property (retain, nonatomic) UIImageView* lowerHandle;
-@property (retain, nonatomic) UIImageView* upperHandle;
 
 
-- (void)addSubviews;
 
 //Setting the lower/upper values with an animation :-)
 - (void)setLowerValue:(float)lowerValue animated:(BOOL) animated;
@@ -90,5 +94,18 @@
 - (void)setUpperValue:(float)upperValue animated:(BOOL) animated;
 
 - (void) setLowerValue:(float) lowerValue upperValue:(float) upperValue animated:(BOOL)animated;
+
+@end
+
+typedef enum multipleTrackerStateTypes {
+    BELOW_MINIMUM_THRESHOLD,
+    NORMAL
+} NMRangeMultipleTrackerStateTypes;
+
+@protocol NMRangeSliderDelegate <NSObject>
+
+@optional
+
+- (void) trackingRangeStateChanged: (NMRangeMultipleTrackerStateTypes) state;
 
 @end

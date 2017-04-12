@@ -28,12 +28,15 @@ NSUInteger DeviceSystemMajorVersion() {
     float _lowerTouchOffset;
     float _upperTouchOffset;
     float _stepValueInternal;
+    BOOL _haveAddedSubviews;
+    float _handleDistance;
+    BOOL _belowMinimumThresholdRange;
 }
 
+@property (retain, nonatomic) UIImageView* lowerHandle;
+@property (retain, nonatomic) UIImageView* upperHandle;
 @property (retain, nonatomic) UIImageView* track;
 @property (retain, nonatomic) UIImageView* trackBackground;
-@property (assign, nonatomic) CGPoint lowerCenter;
-@property (assign, nonatomic) CGPoint upperCenter;
 
 @end
 
@@ -43,6 +46,14 @@ NSUInteger DeviceSystemMajorVersion() {
 #pragma mark -
 #pragma mark - Constructors
 
+- (id)init
+{
+    self = [super init];
+    if (self) {
+        [self configureView];
+    }
+    return self;
+}
 
 - (id)initWithFrame:(CGRect)frame
 {
@@ -70,13 +81,14 @@ NSUInteger DeviceSystemMajorVersion() {
 
 - (void) configureView
 {
-
     //Setup the default values
     _minimumValue = 0.0;
     _maximumValue = 1.0;
     _minimumRange = 0.0;
     _stepValue = 0.0;
     _stepValueInternal = 0.0;
+    _belowMinimumThresholdRange = NO;
+    _minimumThresholdRange = 0.0;
     
     _continuous = YES;
     
@@ -93,32 +105,23 @@ NSUInteger DeviceSystemMajorVersion() {
     
     _lowerTouchEdgeInsets = UIEdgeInsetsMake(-5, -5, -5, -5);
     _upperTouchEdgeInsets = UIEdgeInsetsMake(-5, -5, -5, -5);
-
-    [self addSubviews];
-
-    [self.lowerHandle addObserver:self forKeyPath:@"frame" options:NSKeyValueObservingOptionNew context:nil];
-    [self.upperHandle addObserver:self forKeyPath:@"frame" options:NSKeyValueObservingOptionNew context:nil];
-}
-
-- (void)dealloc {
-    [self.lowerHandle removeObserver:self forKeyPath:@"frame"];
-    [self.upperHandle removeObserver:self forKeyPath:@"frame"];
-}
-
-- (void) observeValueForKeyPath:(NSString*)keyPath ofObject:(id)object change:(NSDictionary*)change context:(void*)context {
-    if ([keyPath isEqual:@"frame"]) {
-        if (object == self.lowerHandle) {
-            self.lowerCenter = self.lowerHandle.center;
-        } else if (object == self.upperHandle) {
-            self.upperCenter = self.upperHandle.center;
-        }
-    }
+    
 }
 
 // ------------------------------------------------------------------------------------------------------
 
 #pragma mark -
 #pragma mark - Properties
+
+- (CGPoint) lowerCenter
+{
+    return _lowerHandle.center;
+}
+
+- (CGPoint) upperCenter
+{
+    return _upperHandle.center;
+}
 
 - (void) setLowerValue:(float)lowerValue
 {
@@ -151,7 +154,7 @@ NSUInteger DeviceSystemMajorVersion() {
     {
         value = roundf(value / _stepValueInternal) * _stepValueInternal;
     }
-
+    
     value = MAX(value, _minimumValue);
     value = MIN(value, _maximumValue);
     
@@ -162,7 +165,7 @@ NSUInteger DeviceSystemMajorVersion() {
     value = MAX(value, _lowerValue+_minimumRange);
     
     _upperValue = value;
-
+    
     [self setNeedsLayout];
 }
 
@@ -205,7 +208,7 @@ NSUInteger DeviceSystemMajorVersion() {
     {
         setValuesBlock();
     }
-
+    
 }
 
 - (void)setLowerValue:(float)lowerValue animated:(BOOL) animated
@@ -230,14 +233,12 @@ NSUInteger DeviceSystemMajorVersion() {
     [self setNeedsLayout];
 }
 
-//ON-Demand images. If the images are not set, then the default values are loaded.
-
-- (UIImage *)imageFromBundle:(NSString*)imageName {
-    NSBundle* bundle = [NSBundle bundleForClass:[NMRangeSlider class]];
-    NSString *imagePath = [bundle pathForResource:imageName ofType:@"png"];
-    UIImage *image = [UIImage imageWithContentsOfFile:imagePath];
-    return image;
+-(void)setMinimumThresholdRange:(float)minimumThresholdRange {
+    _minimumThresholdRange = minimumThresholdRange;
+    [self notifyRangeSliderIfNeeded];
 }
+
+//ON-Demand images. If the images are not set, then the default values are loaded.
 
 - (UIImage *)trackBackgroundImage
 {
@@ -245,13 +246,13 @@ NSUInteger DeviceSystemMajorVersion() {
     {
         if(IS_PRE_IOS7())
         {
-            UIImage* image = [self imageFromBundle:@"slider-default-trackBackground"];
+            UIImage* image = [UIImage imageNamed:@"slider-default-trackBackground"];
             image = [image resizableImageWithCapInsets:UIEdgeInsetsMake(0.0, 5.0, 0.0, 5.0)];
             _trackBackgroundImage = image;
         }
         else
         {
-            UIImage *image = [self imageFromBundle:@"slider-default7-trackBackground"];
+            UIImage* image = [UIImage imageNamed:@"slider-default7-trackBackground"];
             image = [image resizableImageWithCapInsets:UIEdgeInsetsMake(0.0, 2.0, 0.0, 2.0)];
             _trackBackgroundImage = image;
         }
@@ -266,14 +267,14 @@ NSUInteger DeviceSystemMajorVersion() {
     {
         if(IS_PRE_IOS7())
         {
-            UIImage* image = [self imageFromBundle:@"slider-default-track"];
+            UIImage* image = [UIImage imageNamed:@"slider-default-track"];
             image = [image resizableImageWithCapInsets:UIEdgeInsetsMake(0.0, 7.0, 0.0, 7.0)];
             _trackImage = image;
         }
         else
         {
             
-            UIImage* image = [self imageFromBundle:@"slider-default7-track"];
+            UIImage* image = [UIImage imageNamed:@"slider-default7-track"];
             image = [image resizableImageWithCapInsets:UIEdgeInsetsMake(0.0, 2.0, 0.0, 2.0)];
             image = [image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
             _trackImage = image;
@@ -290,13 +291,13 @@ NSUInteger DeviceSystemMajorVersion() {
     {
         if(IS_PRE_IOS7())
         {
-            UIImage* image = [self imageFromBundle:@"slider-default-trackCrossedOver"];
+            UIImage* image = [UIImage imageNamed:@"slider-default-trackCrossedOver"];
             image = [image resizableImageWithCapInsets:UIEdgeInsetsMake(0.0, 7.0, 0.0, 7.0)];
             _trackCrossedOverImage = image;
         }
         else
         {
-            UIImage *image = [self imageFromBundle:@"slider-default7-trackCrossedOver"];
+            UIImage* image = [UIImage imageNamed:@"slider-default7-trackCrossedOver"];
             image = [image resizableImageWithCapInsets:UIEdgeInsetsMake(0.0, 2.0, 0.0, 2.0)];
             _trackCrossedOverImage = image;
         }
@@ -311,15 +312,15 @@ NSUInteger DeviceSystemMajorVersion() {
     {
         if(IS_PRE_IOS7())
         {
-            UIImage* image = [self imageFromBundle:@"slider-default-handle"];
+            UIImage* image = [UIImage imageNamed:@"slider-default-handle"];
             _lowerHandleImageNormal = [image imageWithAlignmentRectInsets:UIEdgeInsetsMake(0, 2, 0, 2)];
         }
         else
         {
-            UIImage *image = [self imageFromBundle:@"slider-default7-handle"];
+            UIImage* image = [UIImage imageNamed:@"slider-default7-handle"];
             _lowerHandleImageNormal = [image imageWithAlignmentRectInsets:UIEdgeInsetsMake(-1, 8, 1, 8)];
         }
-
+        
     }
     
     return _lowerHandleImageNormal;
@@ -331,14 +332,14 @@ NSUInteger DeviceSystemMajorVersion() {
     {
         if(IS_PRE_IOS7())
         {
-            UIImage* image = [self imageFromBundle:@"slider-default-handle-highlighted"];
+            UIImage* image = [UIImage imageNamed:@"slider-default-handle-highlighted"];
             _lowerHandleImageHighlighted = image;
             _lowerHandleImageHighlighted = [image imageWithAlignmentRectInsets:UIEdgeInsetsMake(0, 2, 0, 2)];
             
         }
         else
         {
-            UIImage *image = [self imageFromBundle:@"slider-default7-handle"];
+            UIImage* image = [UIImage imageNamed:@"slider-default7-handle"];
             _lowerHandleImageHighlighted = [image imageWithAlignmentRectInsets:UIEdgeInsetsMake(-1, 8, 1, 8)];
         }
     }
@@ -352,13 +353,13 @@ NSUInteger DeviceSystemMajorVersion() {
     {
         if(IS_PRE_IOS7())
         {
-            UIImage* image = [self imageFromBundle:@"slider-default-handle"];
+            UIImage* image = [UIImage imageNamed:@"slider-default-handle"];
             _upperHandleImageNormal = [image imageWithAlignmentRectInsets:UIEdgeInsetsMake(0, 2, 0, 2)];
             
         }
         else
         {
-            UIImage *image = [self imageFromBundle:@"slider-default7-handle"];
+            UIImage* image = [UIImage imageNamed:@"slider-default7-handle"];
             _upperHandleImageNormal = [image imageWithAlignmentRectInsets:UIEdgeInsetsMake(-1, 8, 1, 8)];
         }
     }
@@ -372,17 +373,40 @@ NSUInteger DeviceSystemMajorVersion() {
     {
         if(IS_PRE_IOS7())
         {
-            UIImage* image = [self imageFromBundle:@"slider-default-handle-highlighted"];
+            UIImage* image = [UIImage imageNamed:@"slider-default-handle-highlighted"];
             _upperHandleImageHighlighted = [image imageWithAlignmentRectInsets:UIEdgeInsetsMake(0, 2, 0, 2)];
         }
         else
         {
-            UIImage *image = [self imageFromBundle:@"slider-default7-handle"];
+            UIImage* image = [UIImage imageNamed:@"slider-default7-handle"];
             _upperHandleImageHighlighted = [image imageWithAlignmentRectInsets:UIEdgeInsetsMake(-1, 8, 1, 8)];
         }
     }
     
     return _upperHandleImageHighlighted;
+}
+
+// ------------------------------------------------------------------------------------------------------
+
+#pragma mark -
+#pragma mark Notification logic
+-(void) notifyRangeSliderIfNeeded {
+    // Do nothing if minimum threshold range is disabled
+    if (_minimumThresholdRange == 0) {
+        return;
+    }
+    
+    if (_upperValue - _lowerValue <= _minimumThresholdRange) {
+        if (!_belowMinimumThresholdRange) {
+            _belowMinimumThresholdRange = TRUE;
+            [_delegate trackingRangeStateChanged:BELOW_MINIMUM_THRESHOLD];
+        }
+    } else {
+        if (_belowMinimumThresholdRange) {
+            _belowMinimumThresholdRange = FALSE;
+            [_delegate trackingRangeStateChanged:NORMAL];
+        }
+    }
 }
 
 // ------------------------------------------------------------------------------------------------------
@@ -456,7 +480,7 @@ NSUInteger DeviceSystemMajorVersion() {
     
     retValue.origin = CGPointMake(xLowerValue, (self.bounds.size.height/2.0f) - (retValue.size.height/2.0f));
     retValue.size.width = xUpperValue-xLowerValue;
-
+    
     UIEdgeInsets alignmentInsets = [self trackAlignmentInsets];
     retValue = UIEdgeInsetsInsetRect(retValue,alignmentInsets);
     
@@ -476,7 +500,7 @@ NSUInteger DeviceSystemMajorVersion() {
 }
 
 //returns the rect for the background image
- -(CGRect) trackBackgroundRect
+-(CGRect) trackBackgroundRect
 {
     CGRect trackBackgroundRect;
     
@@ -507,7 +531,7 @@ NSUInteger DeviceSystemMajorVersion() {
 {
     CGRect thumbRect;
     UIEdgeInsets insets = thumbImage.capInsets;
-
+    
     thumbRect.size = CGSizeMake(thumbImage.size.width, thumbImage.size.height);
     
     if(insets.top || insets.bottom)
@@ -519,7 +543,7 @@ NSUInteger DeviceSystemMajorVersion() {
     thumbRect.origin = CGPointMake(xValue, (self.bounds.size.height/2.0f) - (thumbRect.size.height/2.0f));
     
     return CGRectIntegral(thumbRect);
-
+    
 }
 
 // ------------------------------------------------------------------------------------------------------
@@ -561,7 +585,12 @@ NSUInteger DeviceSystemMajorVersion() {
 
 -(void)layoutSubviews
 {
-    [super layoutSubviews];
+    if(_haveAddedSubviews==NO)
+    {
+        _haveAddedSubviews=YES;
+        [self addSubviews];
+    }
+    
     if(_lowerHandleHidden)
     {
         _lowerValue = _minimumValue;
@@ -571,11 +600,11 @@ NSUInteger DeviceSystemMajorVersion() {
     {
         _upperValue = _maximumValue;
     }
-
+    
     self.trackBackground.frame = [self trackBackgroundRect];
     self.track.frame = [self trackRect];
     self.track.image = [self trackImageForCurrentValues];
-
+    
     // Layout the lower handle
     self.lowerHandle.frame = [self thumbRectForValue:_lowerValue image:self.lowerHandleImageNormal];
     self.lowerHandle.image = self.lowerHandleImageNormal;
@@ -592,7 +621,7 @@ NSUInteger DeviceSystemMajorVersion() {
 
 - (CGSize)intrinsicContentSize
 {
-   return CGSizeMake(UIViewNoIntrinsicMetric, MAX(self.lowerHandleImageNormal.size.height, self.upperHandleImageNormal.size.height));
+    return CGSizeMake(UIViewNoIntrinsicMetric, MAX(self.lowerHandleImageNormal.size.height, self.upperHandleImageNormal.size.height));
 }
 
 // ------------------------------------------------------------------------------------------------------
@@ -620,6 +649,23 @@ NSUInteger DeviceSystemMajorVersion() {
         _upperTouchOffset = touchPoint.x - _upperHandle.center.x;
     }
     
+    if (!_lowerHandle.highlighted && !_upperHandle.highlighted) {
+        CGFloat minX = MIN(CGRectGetMinX(_lowerHandle.frame), CGRectGetMinX(_upperHandle.frame));
+        CGFloat minY = MIN(CGRectGetMinY(_lowerHandle.frame), CGRectGetMinY(_upperHandle.frame));
+        CGFloat maxX = MAX(CGRectGetMaxX(_lowerHandle.frame), CGRectGetMaxX(_upperHandle.frame));
+        CGFloat maxY = MAX(CGRectGetMaxY(_lowerHandle.frame), CGRectGetMaxY(_upperHandle.frame));
+        CGRect insideHandlesFrame = CGRectMake(minX, minY, maxX - minX, maxY -minY);
+        
+        if (CGRectContainsPoint(insideHandlesFrame, touchPoint)) {
+            _lowerHandle.highlighted = YES;
+            _lowerTouchOffset = touchPoint.x - _lowerHandle.center.x;
+            _upperHandle.highlighted = YES;
+            _upperTouchOffset = touchPoint.x - _upperHandle.center.x;
+            
+            _handleDistance = [self upperValueForCenterX:_upperHandle.center.x] - [self lowerValueForCenterX:_lowerHandle.center.x];
+        }
+    }
+    
     _stepValueInternal= _stepValueContinuously ? _stepValue : 0.0f;
     
     return YES;
@@ -634,20 +680,33 @@ NSUInteger DeviceSystemMajorVersion() {
     
     CGPoint touchPoint = [touch locationInView:self];
     
+    //get new lower value based on the touch location.
+    //This is automatically contained within a valid range.
+    float newLowerValue = [self lowerValueForCenterX:(touchPoint.x - _lowerTouchOffset)];
+    float newUpperValue = [self upperValueForCenterX:(touchPoint.x - _upperTouchOffset)];
+    
+//    NSLog(@"New upper %f, New lower: %f", newUpperValue, newLowerValue);
+//    NSLog(@"range calculation distance %f, Calc sub: %f", _handleDistance, newUpperValue - newLowerValue);
+    
+    // Add a little error threshold for the calculation
+    if ((newUpperValue - newLowerValue) * 1.05 < _handleDistance) {
+//        NSLog(@"range calculation break");
+        return true;
+    }
+    
+//    NSLog(@"range continued");
+    
     if(_lowerHandle.highlighted)
     {
-        //get new lower value based on the touch location.
-        //This is automatically contained within a valid range.
-        float newValue = [self lowerValueForCenterX:(touchPoint.x - _lowerTouchOffset)];
+        
         
         //if both upper and lower is selected, then the new value must be LOWER
         //otherwise the touch event is ignored.
-        if(!_upperHandle.highlighted || newValue<_lowerValue)
+        if(!_upperHandle.highlighted || newLowerValue<_lowerValue || true)
         {
-            _upperHandle.highlighted=NO;
             [self bringSubviewToFront:_lowerHandle];
             
-            [self setLowerValue:newValue animated:_stepValueContinuously ? YES : NO];
+            [self setLowerValue:newLowerValue animated:_stepValueContinuously ? YES : NO];
         }
         else
         {
@@ -657,22 +716,21 @@ NSUInteger DeviceSystemMajorVersion() {
     
     if(_upperHandle.highlighted )
     {
-        float newValue = [self upperValueForCenterX:(touchPoint.x - _upperTouchOffset)];
-
+        
+        
         //if both upper and lower is selected, then the new value must be HIGHER
         //otherwise the touch event is ignored.
-        if(!_lowerHandle.highlighted || newValue>_upperValue)
+        if(!_lowerHandle.highlighted || newUpperValue>_upperValue || true)
         {
-            _lowerHandle.highlighted=NO;
             [self bringSubviewToFront:_upperHandle];
-            [self setUpperValue:newValue animated:_stepValueContinuously ? YES : NO];
+            [self setUpperValue:newUpperValue animated:_stepValueContinuously ? YES : NO];
         }
         else
         {
             _upperHandle.highlighted=NO;
         }
     }
-     
+    
     
     //send the control event
     if(_continuous)
@@ -682,7 +740,9 @@ NSUInteger DeviceSystemMajorVersion() {
     
     //redraw
     [self setNeedsLayout];
-
+    
+    [self notifyRangeSliderIfNeeded];
+    
     return YES;
 }
 
@@ -692,6 +752,7 @@ NSUInteger DeviceSystemMajorVersion() {
 {
     _lowerHandle.highlighted = NO;
     _upperHandle.highlighted = NO;
+    _handleDistance = 0;
     
     if(_stepValue>0)
     {

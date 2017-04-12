@@ -71,6 +71,7 @@
 {
     self.standardSlider.lowerValue = 0.23;
     self.standardSlider.upperValue = 0.53;
+    self.standardSlider.trackBackgroundImage = [UIImage new];
 }
 
 
@@ -177,9 +178,9 @@
 - (void) configureSetValueSlider
 {
     [self configureMetalThemeForSlider:self.setValuesSlider];
-
+    
     self.setValuesSlider.minimumRange = 0.1;
-
+    
 }
 
 - (void) updateSetValuesSlider
@@ -188,7 +189,7 @@
     float value2 = (float)random()/RAND_MAX;
     
     [self.setValuesSlider setLowerValue:MIN(value1, value2) upperValue:MAX(value1, value2) animated:YES];
-
+    
     // OR set them individually
     //[self.setValuesSlider setLowerValue:MIN(value1, value2) animated:YES];
     //[self.setValuesSlider setUpperValue:MAX(value1, value2) animated:YES];
@@ -201,7 +202,15 @@
 
 - (void) configureSteppedSlider
 {
-    self.steppedSlider.stepValue = 0.2;
+    self.steppedSlider.stepValue = 1.0;
+    self.steppedSlider.maximumValue = 16;
+    self.steppedSlider.minimumValue = 0;
+    self.steppedSlider.lowerValue = 4;
+    self.steppedSlider.upperValue = 8;
+    self.steppedSlider.minimumRange = 1;
+    self.steppedSlider.stepValueContinuously = NO;
+    self.steppedSlider.delegate = self;
+    self.steppedSlider.minimumThresholdRange = 2.0;
 }
 
 - (void) configureSteppedSliderAlternative
@@ -257,7 +266,12 @@
     }
 }
 
+#pragma mark -
+#pragma mark NMRangeSlider delegate
 
+- (void)trackingRangeStateChanged:(NMRangeMultipleTrackerStateTypes)state {
+    NSLog(@"Range state changed %u", state);
+}
 
 // ------------------------------------------------------------------------------------------------------
 

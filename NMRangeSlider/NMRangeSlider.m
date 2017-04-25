@@ -396,7 +396,12 @@ NSUInteger DeviceSystemMajorVersion() {
         return;
     }
     
-    if (_upperValue - _lowerValue <= _minimumThresholdRange) {
+    // Do nothing if the distance is below the real minimum
+    if (_upperValue - _lowerValue < _minimumRange) {
+        return;
+    }
+    
+    if (_upperValue - _lowerValue < _minimumThresholdRange) {
         if (!_belowMinimumThresholdRange) {
             _belowMinimumThresholdRange = TRUE;
             [_delegate trackingRangeStateChanged:BELOW_MINIMUM_THRESHOLD];
@@ -757,9 +762,9 @@ NSUInteger DeviceSystemMajorVersion() {
     if(_stepValue>0)
     {
         _stepValueInternal=_stepValue;
-        
         [self setLowerValue:_lowerValue animated:YES];
         [self setUpperValue:_upperValue animated:YES];
+        [self notifyRangeSliderIfNeeded];
     }
     
     [self sendActionsForControlEvents:UIControlEventValueChanged];

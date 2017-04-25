@@ -84,13 +84,13 @@
 {
     UIImage* image = nil;
     
-    image = [UIImage imageNamed:@"slider-metal-trackBackground"];
-    image = [image resizableImageWithCapInsets:UIEdgeInsetsMake(0.0, 5.0, 0.0, 5.0)];
-    slider.trackBackgroundImage = image;
+//    image = [UIImage imageNamed:@"slider-metal-trackBackground"];
+//    image = [image resizableImageWithCapInsets:UIEdgeInsetsMake(0.0, 5.0, 0.0, 5.0)];
+//    slider.trackBackgroundImage = image;
     
-    image = [UIImage imageNamed:@"slider-metal-track"];
-    image = [image resizableImageWithCapInsets:UIEdgeInsetsMake(0.0, 7.0, 0.0, 7.0)];
-    slider.trackImage = image;
+//    image = [UIImage imageNamed:@"slider-metal-track"];
+//    image = [image resizableImageWithCapInsets:UIEdgeInsetsMake(0.0, 7.0, 0.0, 7.0)];
+//    slider.trackImage = image;
     
     image = [UIImage imageNamed:@"slider-metal-handle"];
     image = [image imageWithAlignmentRectInsets:UIEdgeInsetsMake(-1, 2, 1, 2)];
@@ -202,12 +202,12 @@
 
 - (void) configureSteppedSlider
 {
-    self.steppedSlider.stepValue = 1.0;
-    self.steppedSlider.maximumValue = 16;
+    self.steppedSlider.stepValue = 2.0;
+    self.steppedSlider.maximumValue = 10;
     self.steppedSlider.minimumValue = 0;
-    self.steppedSlider.lowerValue = 4;
-    self.steppedSlider.upperValue = 8;
-    self.steppedSlider.minimumRange = 1;
+    self.steppedSlider.upperValue = 10;
+    self.steppedSlider.lowerValue = 6;
+    self.steppedSlider.minimumRange = 2;
     self.steppedSlider.stepValueContinuously = NO;
     self.steppedSlider.delegate = self;
     self.steppedSlider.minimumThresholdRange = 2.0;

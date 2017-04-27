@@ -273,6 +273,10 @@
     NSLog(@"Range state changed %u", state);
 }
 
+- (void)trackingLowerValueChanged:(float)lowerValue upperValue:(float)upperValue {
+    NSLog(@"Values changed since last - min: %f, max: %f", lowerValue, upperValue);
+}
+
 // ------------------------------------------------------------------------------------------------------
 
 // Nothing to see here, move along

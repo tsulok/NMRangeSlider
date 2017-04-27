@@ -106,6 +106,7 @@ typedef enum multipleTrackerStateTypes {
 
 @optional
 
-- (void) trackingRangeStateChanged: (NMRangeMultipleTrackerStateTypes) state;
+- (void)trackingRangeStateChanged: (NMRangeMultipleTrackerStateTypes) state;
+- (void)trackingLowerValueChanged: (float)lowerValue upperValue:(float) upperValue;
 
 @end

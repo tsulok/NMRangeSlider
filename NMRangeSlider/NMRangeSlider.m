@@ -31,6 +31,9 @@ NSUInteger DeviceSystemMajorVersion() {
     BOOL _haveAddedSubviews;
     float _handleDistance;
     BOOL _belowMinimumThresholdRange;
+    
+    float _lastStableUpperValue;
+    float _lastStableLowerValue;
 }
 
 @property (retain, nonatomic) UIImageView* lowerHandle;
@@ -638,6 +641,8 @@ NSUInteger DeviceSystemMajorVersion() {
 {
     CGPoint touchPoint = [touch locationInView:self];
     
+    _lastStableLowerValue = _lowerValue;
+    _lastStableUpperValue = _upperValue;
     
     //Check both buttons upper and lower thumb handles because
     //they could be on top of each other.
@@ -766,6 +771,13 @@ NSUInteger DeviceSystemMajorVersion() {
         [self setUpperValue:_upperValue animated:YES];
         [self notifyRangeSliderIfNeeded];
     }
+    
+    if (_lowerValue != _lastStableLowerValue || _upperValue != _lastStableUpperValue) {
+        [_delegate trackingLowerValueChanged:_lowerValue upperValue:_upperValue];
+    }
+    
+    _lastStableUpperValue = _upperValue;
+    _lastStableLowerValue = _lowerValue;
     
     [self sendActionsForControlEvents:UIControlEventValueChanged];
 }
